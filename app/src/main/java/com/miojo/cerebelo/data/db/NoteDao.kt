@@ -31,13 +31,13 @@ interface NoteDao {
     )
     fun observeNotes(query: String, tagId: Long?): Flow<List<NoteWithTags>>
 
-    /** Notas de uma tag em ordem cronológica (mais antigas primeiro). */
+    /** Notas de uma tag, mais recentes primeiro. */
     @Transaction
     @Query(
         """
         SELECT * FROM notes
         WHERE id IN (SELECT noteId FROM note_tags WHERE tagId = :tagId)
-        ORDER BY createdAt ASC
+        ORDER BY createdAt DESC
         """
     )
     fun observeNotesForTag(tagId: Long): Flow<List<NoteWithTags>>

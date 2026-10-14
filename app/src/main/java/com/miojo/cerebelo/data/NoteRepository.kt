@@ -37,6 +37,12 @@ class NoteRepository(private val db: AppDatabase) {
 
     fun observeTagsWithCounts(): Flow<List<TagWithCount>> = tagDao.observeWithCounts()
 
+    /** Tags com notas no período [from, to) (em ms), com a contagem só desse período. */
+    fun observeTagsWithCountsBetween(from: Long, to: Long): Flow<List<TagWithCount>> =
+        tagDao.observeWithCountsBetween(from, to)
+
+    suspend fun getTag(id: Long): TagEntity? = tagDao.get(id)
+
     fun observeTag(id: Long): Flow<TagEntity?> = tagDao.observe(id)
 
     suspend fun getNote(id: Long): NoteWithTags? = noteDao.getNote(id)

@@ -2,6 +2,7 @@ package com.miojo.cerebelo.ui.habits
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.miojo.cerebelo.data.ChecklistProgress
 import com.miojo.cerebelo.data.HabitForDay
 import com.miojo.cerebelo.data.HabitRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-/** Checklist de hoje. */
+/** Checklist de hoje + sequência. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
@@ -24,6 +25,10 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
     /** null = carregando. */
     val items: StateFlow<List<HabitForDay>?> = _today
         .flatMapLatest { repository.observeDay(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val progress: StateFlow<ChecklistProgress?> = _today
+        .flatMapLatest { repository.observeProgress(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Chamado ao voltar para o app: se virou o dia, o checklist reinicia. */

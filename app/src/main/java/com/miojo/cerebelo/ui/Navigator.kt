@@ -2,7 +2,6 @@ package com.miojo.cerebelo.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,20 +14,25 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.miojo.cerebelo.AppContainer
 import com.miojo.cerebelo.appContainer
-import com.miojo.cerebelo.data.TagRef
 
 /** Telas do app. */
 sealed interface Screen {
     data object Home : Screen
-    data class EditNote(val noteId: Long) : Screen
+    /** [noteId] nulo = nota nova; [withTagId] = tag já marcada na nota nova. */
+    data class EditNote(val noteId: Long? = null, val withTagId: Long? = null) : Screen
     data class Tag(val tagId: Long) : Screen
     data class HabitDetail(val habitId: Long) : Screen
     data object ManageHabits : Screen
     data object Backup : Screen
 }
 
-/** Abas da tela inicial. */
-enum class HomeTab { NOTES, TODAY }
+/** Abas da navegação inferior. */
+enum class HomeTab(val label: String) {
+    NOTES("Notas"),
+    TIMELINE("Tempo"),
+    PEOPLE("Pessoas"),
+    TODOS("Afazeres"),
+}
 
 /**
  * Uma tela na pilha. Cada uma tem seus próprios ViewModels,
@@ -49,27 +53,8 @@ class Navigator : ViewModel() {
     val current: BackStackEntry get() = backStack.last()
     val canPop: Boolean get() = backStack.size > 1
 
-    /** Cada incremento pede para focar o campo de nova nota. */
-    var newNoteRequest by mutableIntStateOf(0)
-        private set
-
-    /** Tag a pré-marcar na nova nota (ex.: "Nova nota" na tela da Ana). */
-    var pendingTag by mutableStateOf<TagRef?>(null)
-        private set
-
     var homeTab by mutableStateOf(HomeTab.NOTES)
-
-    /** Volta para a tela inicial com o cursor no campo de escrita. */
-    fun requestNewNote(withTag: TagRef? = null) {
-        popToHome()
-        homeTab = HomeTab.NOTES
-        pendingTag = withTag
-        newNoteRequest++
-    }
-
-    fun consumePendingTag() {
-        pendingTag = null
-    }
+        private set
 
     fun push(screen: Screen) {
         backStack.add(BackStackEntry(screen, nextKey++))
@@ -81,6 +66,19 @@ class Navigator : ViewModel() {
 
     fun popToHome() {
         while (canPop) pop()
+    }
+
+    /** Troca de aba (fecha telas abertas por cima). */
+    fun selectTab(tab: HomeTab) {
+        popToHome()
+        homeTab = tab
+    }
+
+    /** Abre a escrita de uma nota nova, com o teclado aberto. Voltar leva às Notas. */
+    fun openNewNote(withTagId: Long? = null) {
+        popToHome()
+        homeTab = HomeTab.NOTES
+        push(Screen.EditNote(noteId = null, withTagId = withTagId))
     }
 
     override fun onCleared() {

@@ -32,8 +32,25 @@ interface TagDao {
     )
     fun observeWithCounts(): Flow<List<TagWithCount>>
 
+    /** Como [observeWithCounts], mas só tags com notas no período [from, to) (em ms). */
+    @Query(
+        """
+        SELECT t.*, COUNT(n.id) AS noteCount, MAX(n.createdAt) AS lastNoteAt
+        FROM tags t
+        JOIN note_tags nt ON nt.tagId = t.id
+        JOIN notes n ON n.id = nt.noteId
+        WHERE n.createdAt >= :from AND n.createdAt < :to
+        GROUP BY t.id
+        ORDER BY lastNoteAt DESC
+        """
+    )
+    fun observeWithCountsBetween(from: Long, to: Long): Flow<List<TagWithCount>>
+
     @Query("SELECT * FROM tags WHERE id = :id")
     fun observe(id: Long): Flow<TagEntity?>
+
+    @Query("SELECT * FROM tags WHERE id = :id")
+    suspend fun get(id: Long): TagEntity?
 
     @Query("SELECT * FROM tags WHERE name = :name AND type = :type LIMIT 1")
     suspend fun find(name: String, type: TagType): TagEntity?

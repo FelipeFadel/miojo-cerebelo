@@ -189,6 +189,8 @@ fun InkDialog(
     onConfirm: () -> Unit = {},
     confirmEnabled: Boolean = true,
     dismissLabel: String = "Cancelar",
+    /** Ação do botão [dismissLabel]; por padrão só fecha (igual a tocar fora). */
+    onDismissButton: () -> Unit = onDismiss,
     content: @Composable () -> Unit = {},
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -204,7 +206,7 @@ fun InkDialog(
             Text(title, style = Ink.type.section, color = Ink.colors.ink)
             content()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                InkTextButton(dismissLabel, onClick = onDismiss, color = Ink.colors.inkSoft)
+                InkTextButton(dismissLabel, onClick = onDismissButton, color = Ink.colors.inkSoft)
                 if (confirmLabel != null) {
                     Spacer(Modifier.width(Ink.spacing.sm))
                     InkTextButton(confirmLabel, onClick = onConfirm, frame = InkFrameStyle.Single, enabled = confirmEnabled)

@@ -18,8 +18,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        // Abrir o app já com o cursor no campo de escrita.
-        if (savedInstanceState == null) navigator.requestNewNote()
+        // Abrir o app já escrevendo uma nota nova.
+        if (savedInstanceState == null) navigator.openNewNote()
 
         setContent {
             CerebeloTheme {
@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_NEW_NOTE, false)) navigator.requestNewNote()
+        if (intent.getBooleanExtra(EXTRA_NEW_NOTE, false)) navigator.openNewNote()
     }
 
     companion object {

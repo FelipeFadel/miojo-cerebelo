@@ -6,5 +6,10 @@
             android:name=".debug.InkShowcaseActivity"
             android:exported="true"
             android:theme="@style/Theme.Cerebelo" />
+        <!-- Preenche com dados de exemplo (apaga os atuais); só no APK de debug. -->
+        <activity
+            android:name=".debug.SeedActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Cerebelo" />
     </application>
 </manifest>

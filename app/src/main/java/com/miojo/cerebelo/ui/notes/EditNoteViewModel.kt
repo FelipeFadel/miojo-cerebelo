@@ -13,17 +13,28 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Adiciona a tag se ainda não estiver na lista (mesmo nome e tipo). */
+fun List<TagRef>.plusTag(tag: TagRef): List<TagRef> =
+    if (any { it.type == tag.type && it.name.equals(tag.name, ignoreCase = true) }) this else this + tag
+
 data class EditNoteState(
     val loaded: Boolean = false,
+    val isNew: Boolean = true,
     val createdAt: Long = 0,
     val text: String = "",
     val tags: List<TagRef> = emptyList(),
+    /** Houve mudança desde que a tela abriu. */
+    val dirty: Boolean = false,
     /** Vira true depois de salvar ou apagar: a tela deve fechar. */
     val done: Boolean = false,
-)
+) {
+    val canSave: Boolean get() = text.isNotBlank()
+}
 
+/** Escrever uma nota nova ([noteId] nulo) ou editar uma existente. */
 class EditNoteViewModel(
-    private val noteId: Long,
+    private val noteId: Long?,
+    private val withTagId: Long?,
     private val repository: NoteRepository,
 ) : ViewModel() {
 
@@ -35,29 +46,40 @@ class EditNoteViewModel(
 
     init {
         viewModelScope.launch {
-            val item = repository.getNote(noteId)
-            _state.value = if (item == null) {
-                EditNoteState(done = true)
-            } else {
+            _state.value = if (noteId == null) {
+                val tag = withTagId?.let { repository.getTag(it) }
                 EditNoteState(
                     loaded = true,
-                    createdAt = item.note.createdAt,
-                    text = item.note.text,
-                    tags = item.tags.map(TagRef::of),
+                    isNew = true,
+                    createdAt = System.currentTimeMillis(),
+                    tags = listOfNotNull(tag?.let(TagRef::of)),
                 )
+            } else {
+                val item = repository.getNote(noteId)
+                if (item == null) {
+                    EditNoteState(done = true)
+                } else {
+                    EditNoteState(
+                        loaded = true,
+                        isNew = false,
+                        createdAt = item.note.createdAt,
+                        text = item.note.text,
+                        tags = item.tags.map(TagRef::of),
+                    )
+                }
             }
         }
     }
 
-    fun onTextChange(text: String) = _state.update { it.copy(text = text) }
+    fun onTextChange(text: String) = _state.update { it.copy(text = text, dirty = true) }
 
-    fun addTag(tag: TagRef) = _state.update { it.copy(tags = it.tags.plusTag(tag)) }
+    fun addTag(tag: TagRef) = _state.update { it.copy(tags = it.tags.plusTag(tag), dirty = true) }
 
-    fun removeTag(tag: TagRef) = _state.update { it.copy(tags = it.tags - tag) }
+    fun removeTag(tag: TagRef) = _state.update { it.copy(tags = it.tags - tag, dirty = true) }
 
     fun save() {
         val current = _state.value
-        if (current.text.isBlank()) return
+        if (!current.canSave) return
         viewModelScope.launch {
             repository.saveNote(noteId, current.text.trim(), current.tags)
             _state.update { it.copy(done = true) }
@@ -65,8 +87,9 @@ class EditNoteViewModel(
     }
 
     fun delete() {
+        val id = noteId ?: return
         viewModelScope.launch {
-            repository.deleteNote(noteId)
+            repository.deleteNote(id)
             _state.update { it.copy(done = true) }
         }
     }

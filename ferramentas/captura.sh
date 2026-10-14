@@ -2,6 +2,8 @@
 # Tira um print do emulador/celular conectado e salva em capturas/<nome>.png
 # Uso: bash ferramentas/captura.sh <nome> [claro|escuro]
 set -euo pipefail
+# Git Bash: não converter caminhos do Android (/sdcard) em caminhos do Windows.
+export MSYS_NO_PATHCONV=1
 ADB=/d/android-dev/sdk/platform-tools/adb.exe
 DIR="$(cd "$(dirname "$0")/.." && pwd)/capturas"
 mkdir -p "$DIR"

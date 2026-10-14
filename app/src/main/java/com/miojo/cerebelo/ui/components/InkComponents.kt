@@ -1,6 +1,7 @@
 package com.miojo.cerebelo.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +25,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
@@ -37,6 +43,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.miojo.cerebelo.data.db.TagType
 import com.miojo.cerebelo.ui.theme.Ink
@@ -47,25 +54,30 @@ import kotlin.random.Random
 
 // ---------- Traços ----------
 
+/*
+ * Os traços usam paint(sizeToIntrinsics = false): o tamanho original da imagem
+ * (1200px / 1600px) não pode influenciar o layout, só o tamanho que damos.
+ */
+
 /** Linha de tinta horizontal (divisórias, topo da navegação). */
 @Composable
 fun InkRule(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(InkAssets.rule),
-        contentDescription = null,
-        contentScale = ContentScale.FillBounds,
-        modifier = modifier.fillMaxWidth().height(InkSizes.ruleThickness),
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(InkSizes.ruleThickness)
+            .paint(painterResource(InkAssets.rule), sizeToIntrinsics = false, contentScale = ContentScale.FillBounds),
     )
 }
 
 /** Linha de tinta vertical (linha do tempo da pessoa, faixa do widget). */
 @Composable
 fun InkVRule(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(InkAssets.vrule),
-        contentDescription = null,
-        contentScale = ContentScale.FillBounds,
-        modifier = modifier.width(InkSizes.vruleThickness).fillMaxHeight(),
+    Box(
+        modifier
+            .width(InkSizes.vruleThickness)
+            .fillMaxHeight()
+            .paint(painterResource(InkAssets.vrule), sizeToIntrinsics = false, contentScale = ContentScale.FillBounds),
     )
 }
 
@@ -81,6 +93,7 @@ fun InkCheckbox(
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
+    size: Dp = InkSizes.checkbox,
 ) {
     val toggle = if (onCheckedChange != null) {
         Modifier
@@ -88,10 +101,10 @@ fun InkCheckbox(
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
     } else Modifier
     Box(modifier.then(toggle), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(InkSizes.checkbox).alpha(alpha)) {
-            Image(painterResource(InkAssets.box), contentDescription = null, modifier = Modifier.size(InkSizes.checkbox))
+        Box(Modifier.size(size).alpha(alpha)) {
+            Image(painterResource(InkAssets.box), contentDescription = null, modifier = Modifier.size(size))
             if (checked) {
-                Image(painterResource(InkAssets.xmark), contentDescription = null, modifier = Modifier.size(InkSizes.checkbox))
+                Image(painterResource(InkAssets.xmark), contentDescription = null, modifier = Modifier.size(size))
             }
         }
     }
@@ -136,7 +149,8 @@ fun InkTag(
 @Composable
 fun InkPlusButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentDescription: String = "Nova nota") {
     InkFrame(
-        modifier = modifier.size(InkSizes.plusButton),
+        // Fundo de papel: o botão fica por cima das notas que rolam atrás.
+        modifier = modifier.size(InkSizes.plusButton).background(Ink.colors.page),
         style = InkFrameStyle.Double,
         contentPadding = PaddingValues(0.dp),
         onClick = onClick,
@@ -205,10 +219,21 @@ fun InkBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 // ---------- Textos de página ----------
 
-/** Título de tela em MAIÚSCULAS. */
+/** Título de tela em MAIÚSCULAS, numa linha só (encolhe um pouco se não couber). */
 @Composable
 fun InkScreenTitle(text: String, modifier: Modifier = Modifier, textAlign: TextAlign = TextAlign.Start) {
-    Text(text.uppercase(), style = Ink.type.screenTitle, color = Ink.colors.ink, textAlign = textAlign, modifier = modifier)
+    val base = Ink.type.screenTitle
+    var scale by remember(text) { mutableFloatStateOf(1f) }
+    Text(
+        text = text.uppercase(),
+        style = base.copy(fontSize = base.fontSize * scale, letterSpacing = base.letterSpacing * scale),
+        color = Ink.colors.ink,
+        textAlign = textAlign,
+        maxLines = 1,
+        softWrap = false,
+        onTextLayout = { if (it.hasVisualOverflow && scale > 0.6f) scale *= 0.92f },
+        modifier = modifier,
+    )
 }
 
 /** Rótulo pequeno em MAIÚSCULAS (data, contador, hora). */
@@ -302,12 +327,19 @@ enum class DayMark { DONE, MISSED, TODAY, FUTURE }
 
 /** Um dia da faixa de sequência: caixa (+ X se cumprido) e a inicial embaixo. */
 @Composable
-fun InkDayBox(label: String, mark: DayMark, isToday: Boolean, modifier: Modifier = Modifier) {
+fun InkDayBox(
+    label: String,
+    mark: DayMark,
+    isToday: Boolean,
+    modifier: Modifier = Modifier,
+    boxSize: Dp = InkSizes.checkbox,
+) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         InkCheckbox(
             checked = mark == DayMark.DONE,
             onCheckedChange = null,
             alpha = if (mark == DayMark.MISSED || mark == DayMark.FUTURE) InkSizes.MISSED_ALPHA else 1f,
+            size = boxSize,
         )
         Spacer(Modifier.height(Ink.spacing.xs))
         val ink = Ink.colors.ink

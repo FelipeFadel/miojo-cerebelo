@@ -1,35 +1,28 @@
 package com.miojo.cerebelo.ui.habits
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,14 +30,26 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.miojo.cerebelo.data.db.HabitEntity
 import com.miojo.cerebelo.ui.appViewModel
-import com.miojo.cerebelo.ui.theme.spacing
+import com.miojo.cerebelo.ui.components.InkBackButton
+import com.miojo.cerebelo.ui.components.InkDialog
+import com.miojo.cerebelo.ui.components.InkLabel
+import com.miojo.cerebelo.ui.components.InkRule
+import com.miojo.cerebelo.ui.components.InkScreenTitle
+import com.miojo.cerebelo.ui.components.InkTextButton
+import com.miojo.cerebelo.ui.components.InkTextField
+import com.miojo.cerebelo.ui.theme.Ink
+import com.miojo.cerebelo.ui.theme.InkSizes
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Editar a lista de afazeres: adicionar, renomear (tocar no nome), reordenar e apagar. */
 @Composable
 fun ManageHabitsScreen(onBack: () -> Unit) {
     val vm = appViewModel { ManageHabitsViewModel(it.habitRepository) }
@@ -60,72 +65,71 @@ fun ManageHabitsScreen(onBack: () -> Unit) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Editar checklist") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") }
-                },
-            )
-        },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).imePadding(),
-            contentPadding = PaddingValues(MaterialTheme.spacing.screen),
-            verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sm),
-        ) {
-            item(key = "add") {
-                OutlinedTextField(
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Ink.colors.page)
+            .statusBarsPadding()
+            .imePadding(),
+        contentPadding = PaddingValues(start = Ink.spacing.screen, end = Ink.spacing.screen, bottom = Ink.spacing.xl),
+    ) {
+        item(key = "header") {
+            Column {
+                InkBackButton(onClick = onBack, modifier = Modifier.padding(top = Ink.spacing.sm))
+                InkScreenTitle("Editar lista", Modifier.padding(top = Ink.spacing.sm))
+                InkLabel("Afazeres que reiniciam todo dia", Modifier.padding(top = Ink.spacing.xs, bottom = Ink.spacing.lg))
+                InkTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Novo item (ex.: Exercício)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Done,
-                    ),
+                    placeholder = "Novo afazer (ex.: Exercício)",
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { add() }),
-                    trailingIcon = {
-                        IconButton(onClick = ::add, enabled = newName.isNotBlank()) {
-                            Icon(Icons.Default.Add, "Adicionar")
-                        }
-                    },
+                    trailing = { InkTextButton("Adicionar", onClick = ::add, enabled = newName.isNotBlank()) },
                 )
             }
-            itemsIndexed(habits, key = { _, habit -> habit.id }) { index, habit ->
-                ManageRow(
-                    habit = habit,
-                    canMoveUp = index > 0,
-                    canMoveDown = index < habits.lastIndex,
-                    onRename = { renaming = habit.id },
-                    onMoveUp = { vm.moveUp(habit.id) },
-                    onMoveDown = { vm.moveDown(habit.id) },
-                    onDelete = { deleting = habit.id },
-                )
+        }
+
+        itemsIndexed(habits, key = { _, habit -> habit.id }) { index, habit ->
+            ManageRow(
+                habit = habit,
+                canMoveUp = index > 0,
+                canMoveDown = index < habits.lastIndex,
+                onRename = { renaming = habit.id },
+                onMoveUp = { vm.moveUp(habit.id) },
+                onMoveDown = { vm.moveDown(habit.id) },
+                onDelete = { deleting = habit.id },
+            )
+        }
+
+        if (habits.isNotEmpty()) {
+            item(key = "hint") {
+                InkLabel("Toque no nome para renomear", Modifier.padding(top = Ink.spacing.md).navigationBarsPadding())
             }
         }
     }
 
     habits.firstOrNull { it.id == renaming }?.let { habit ->
-        RenameDialog(
-            initial = habit.name,
-            onConfirm = { vm.rename(habit.id, it); renaming = null },
+        var name by rememberSaveable(habit.id) { mutableStateOf(habit.name) }
+        InkDialog(
+            title = "Renomear",
             onDismiss = { renaming = null },
-        )
+            confirmLabel = "Guardar",
+            onConfirm = { vm.rename(habit.id, name); renaming = null },
+            confirmEnabled = name.isNotBlank(),
+        ) {
+            InkTextField(value = name, onValueChange = { name = it })
+        }
     }
 
     habits.firstOrNull { it.id == deleting }?.let { habit ->
-        AlertDialog(
-            onDismissRequest = { deleting = null },
-            title = { Text("Apagar “${habit.name}”?") },
-            text = { Text("O histórico desse item também será apagado.") },
-            confirmButton = {
-                TextButton(onClick = { vm.delete(habit.id); deleting = null }) { Text("Apagar") }
-            },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancelar") } },
-        )
+        InkDialog(
+            title = "Apagar “${habit.name}”?",
+            onDismiss = { deleting = null },
+            confirmLabel = "Apagar",
+            onConfirm = { vm.delete(habit.id); deleting = null },
+        ) {
+            Text("O histórico desse afazer também será apagado.", style = Ink.type.item, color = Ink.colors.inkSoft)
+        }
     }
 }
 
@@ -139,49 +143,34 @@ private fun ManageRow(
     onMoveDown: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
+    Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = habit.name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = Ink.type.item,
+                color = Ink.colors.ink,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onRename)
-                    .padding(MaterialTheme.spacing.lg),
+                    .clickable(onClickLabel = "Renomear", onClick = onRename)
+                    .padding(vertical = Ink.spacing.md),
             )
-            IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-                Icon(Icons.Default.KeyboardArrowUp, "Subir")
-            }
-            IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-                Icon(Icons.Default.KeyboardArrowDown, "Descer")
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, "Apagar")
-            }
+            InkIconButton(Icons.Default.KeyboardArrowUp, "Subir", enabled = canMoveUp, onClick = onMoveUp)
+            InkIconButton(Icons.Default.KeyboardArrowDown, "Descer", enabled = canMoveDown, onClick = onMoveDown)
+            InkTextButton("Apagar", onClick = onDelete, color = Ink.colors.seal)
         }
+        InkRule()
     }
 }
 
 @Composable
-private fun RenameDialog(initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
-    var name by rememberSaveable { mutableStateOf(initial) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Renomear") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) { Text("Salvar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
-    )
+private fun InkIconButton(icon: ImageVector, description: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .alpha(if (enabled) 1f else InkSizes.MISSED_ALPHA)
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = description, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = description, tint = Ink.colors.ink, modifier = Modifier.size(24.dp))
+    }
 }

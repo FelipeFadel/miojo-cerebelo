@@ -202,7 +202,7 @@ internal object InkAssets {
         R.drawable.orn_vinheta_coelho_cavaleiro,
     )
 
-    /** Ilustrações verticais da faixa lateral dos widgets. */
+    /** Ilustrações verticais da faixa lateral do widget: uma por dia da semana, de segunda a domingo. */
     val widgetVerticals = listOf(
         R.drawable.orn_vertical_conchas,
         R.drawable.orn_vertical_entrelacado,
@@ -220,7 +220,12 @@ internal object InkAssets {
 internal object WidgetTokens {
     val padding = 16.dp
     val itemSpacing = 6.dp
-    val sideStripWidth = 72.dp
+    val sideStripWidth = 120.dp
+    val cornerRadius = 16.dp
+    val buttonHeight = 36.dp
+    val plusIcon = 16.dp
+    val checkbox = 24.dp
+    val ruleHeight = 6.dp
     val labelSize = 11.sp
     val bodySize = 15.sp
     val itemSize = 16.sp

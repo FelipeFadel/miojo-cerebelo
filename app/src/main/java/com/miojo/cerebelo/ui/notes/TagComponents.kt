@@ -8,27 +8,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.InputChipDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,38 +23,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.miojo.cerebelo.data.TagRef
 import com.miojo.cerebelo.data.db.TagEntity
 import com.miojo.cerebelo.data.db.TagType
+import com.miojo.cerebelo.ui.components.InkDialog
+import com.miojo.cerebelo.ui.components.InkFrameStyle
+import com.miojo.cerebelo.ui.components.InkTag
+import com.miojo.cerebelo.ui.components.InkTextButton
+import com.miojo.cerebelo.ui.components.InkTextField
 import com.miojo.cerebelo.ui.label
-import com.miojo.cerebelo.ui.tagChipText
-import com.miojo.cerebelo.ui.theme.spacing
+import com.miojo.cerebelo.ui.theme.Ink
 
-/** Chip de tag somente leitura (usado nas notas). */
-@Composable
-fun TagChip(name: String, type: TagType, onClick: () -> Unit) {
-    SuggestionChip(
-        onClick = onClick,
-        label = { Text(tagChipText(name, type)) },
-        icon = if (type == TagType.PERSON) {
-            { Icon(Icons.Default.Person, contentDescription = null, Modifier.size(SuggestionChipDefaults.IconSize)) }
-        } else null,
-        colors = if (type == TagType.PERSON) {
-            SuggestionChipDefaults.suggestionChipColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        } else {
-            SuggestionChipDefaults.suggestionChipColors()
-        },
-    )
-}
-
-/** Tags selecionadas (removíveis) + botões para adicionar pessoa/acontecimento. */
+/** Tags escolhidas (tocar remove) + botões para adicionar pessoa/acontecimento. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TagEditorRow(
@@ -84,33 +52,25 @@ fun TagEditorRow(
 
     FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Ink.spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Ink.spacing.xs),
     ) {
         selected.forEach { tag ->
-            InputChip(
-                selected = true,
-                onClick = { onRemove(tag) },
-                label = { Text(tagChipText(tag.name, tag.type)) },
-                leadingIcon = if (tag.type == TagType.PERSON) {
-                    { Icon(Icons.Default.Person, null, Modifier.size(InputChipDefaults.IconSize)) }
-                } else null,
-                trailingIcon = {
-                    Icon(Icons.Default.Close, "Remover", Modifier.size(InputChipDefaults.IconSize))
-                },
-            )
+            InkTag(tag.name, tag.type, trailing = "×", onClick = { onRemove(tag) })
         }
-        TagType.entries.forEach { type ->
-            AssistChip(
-                onClick = { pickerType = type },
-                label = { Text(type.label) },
-                leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(AssistChipDefaults.IconSize)) },
-            )
-        }
+        InkTextButton("+ Pessoa", onClick = { pickerType = TagType.PERSON }, frame = InkFrameStyle.Person, color = Ink.colors.person)
+        InkTextButton(
+            "+ Acontecimento",
+            onClick = { pickerType = TagType.EVENT },
+            frame = InkFrameStyle.Event,
+            color = Ink.colors.seal,
+            italic = true,
+        )
     }
 
     pickerType?.let { type ->
         TagPickerDialog(
-            title = "Adicionar ${type.label.lowercase()}",
+            title = if (type == TagType.PERSON) "Quem?" else "Qual acontecimento?",
             tags = allTags.filter { tag ->
                 tag.type == type && selected.none { it.type == type && it.name.equals(tag.name, ignoreCase = true) }
             },
@@ -122,7 +82,7 @@ fun TagEditorRow(
 }
 
 /**
- * Diálogo para escolher uma tag existente (com busca) ou criar uma nova.
+ * Escolher uma tag existente (com busca) ou criar uma nova.
  * Se [createType] for nulo, só permite escolher (usado no filtro).
  */
 @Composable
@@ -138,66 +98,63 @@ fun TagPickerDialog(
     val typed = text.trim()
     val matches = tags.filter { typed.isEmpty() || it.name.contains(typed, ignoreCase = true) }
     val exact = tags.firstOrNull { it.name.equals(typed, ignoreCase = true) }
+    val canCreate = createType != null && typed.isNotEmpty() && exact == null
 
     fun confirm() {
         when {
             exact != null -> onPick(TagRef.of(exact))
-            typed.isNotEmpty() && createType != null -> onPick(TagRef(typed, createType))
+            canCreate -> onPick(TagRef(typed, createType!!))
             matches.size == 1 -> onPick(TagRef.of(matches.first()))
         }
     }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sm)) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                    placeholder = { Text(if (createType != null) "Nome" else "Buscar") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(onDone = { confirm() }),
-                )
-                LazyColumn(Modifier.heightIn(max = 240.dp)) {
-                    if (createType != null && typed.isNotEmpty() && exact == null) {
-                        item {
-                            PickerRow("Criar “$typed”") { onPick(TagRef(typed, createType)) }
-                        }
-                    }
-                    items(matches, key = { it.id }) { tag ->
-                        PickerRow(tagChipText(tag.name, tag.type)) { onPick(TagRef.of(tag)) }
-                    }
+    InkDialog(
+        title = title,
+        onDismiss = onDismiss,
+        confirmLabel = if (createType != null) "Adicionar" else null,
+        onConfirm = ::confirm,
+        confirmEnabled = typed.isNotEmpty(),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Ink.spacing.sm)) {
+            InkTextField(
+                value = text,
+                onValueChange = { text = it },
+                placeholder = createType?.label?.let { "Nome" } ?: "Buscar",
+                modifier = Modifier.focusRequester(focusRequester),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { confirm() }),
+            )
+            LazyColumn(Modifier.heightIn(max = 260.dp)) {
+                if (canCreate) {
+                    item { PickerRow("Criar “$typed”", createType!!, isCreate = true) { onPick(TagRef(typed, createType)) } }
                 }
-                if (matches.isEmpty() && createType == null) {
-                    Text("Nenhuma tag encontrada.", style = MaterialTheme.typography.bodySmall)
+                items(matches, key = { it.id }) { tag ->
+                    PickerRow(tag.name, tag.type) { onPick(TagRef.of(tag)) }
                 }
             }
-        },
-        confirmButton = {
-            if (createType != null) {
-                TextButton(onClick = ::confirm, enabled = typed.isNotEmpty()) { Text("Adicionar") }
+            if (matches.isEmpty() && !canCreate) {
+                Text("Nada encontrado.", style = Ink.type.item, color = Ink.colors.inkSoft)
             }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
-    )
+        }
+    }
 }
 
 @Composable
-private fun PickerRow(text: String, onClick: () -> Unit) {
+private fun PickerRow(text: String, type: TagType, isCreate: Boolean = false, onClick: () -> Unit) {
+    val isEvent = type == TagType.EVENT
     Text(
         text = text,
-        style = MaterialTheme.typography.bodyLarge,
+        style = Ink.type.item.copy(fontStyle = if (isEvent || isCreate) FontStyle.Italic else FontStyle.Normal),
+        color = when {
+            isCreate -> Ink.colors.inkSoft
+            isEvent -> Ink.colors.seal
+            else -> Ink.colors.ink
+        },
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = MaterialTheme.spacing.md, horizontal = MaterialTheme.spacing.xs),
+            .padding(vertical = 12.dp, horizontal = 4.dp),
     )
 }
