@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FF4F5BD5</color>
+    <!-- Espelham os tokens Paper/Plate de DesignTokens.kt (o XML não lê Kotlin). -->
+    <color name="page">#FFF3EBD0</color>
+    <color name="ink">#FF221E17</color>
+    <color name="ic_launcher_background">#FFF3EBD0</color>
 </resources>

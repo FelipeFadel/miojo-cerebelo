@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Vitrine dos componentes; existe só no APK de debug. -->
+        <activity
+            android:name=".debug.InkShowcaseActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Cerebelo" />
+    </application>
+</manifest>

@@ -42,6 +42,11 @@ interface NoteDao {
     )
     fun observeNotesForTag(tagId: Long): Flow<List<NoteWithTags>>
 
+    /** Últimas notas (tela inicial). */
+    @Transaction
+    @Query("SELECT * FROM notes ORDER BY createdAt DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<NoteWithTags>>
+
     @Transaction
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun getNote(id: Long): NoteWithTags?

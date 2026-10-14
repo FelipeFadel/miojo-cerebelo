@@ -20,6 +20,16 @@ object Streaks {
         return count
     }
 
+    /**
+     * Dias "cumpridos" do checklist inteiro: todos os itens que já existiam
+     * naquele dia foram marcados. [habitStartDays] = id do item -> dia em que foi criado.
+     */
+    fun fulfilledDays(habitStartDays: Map<Long, Long>, checks: Map<Long, Set<Long>>): Set<Long> =
+        checks.filter { (day, doneIds) ->
+            val required = habitStartDays.filterValues { start -> start <= day }.keys
+            required.isNotEmpty() && doneIds.containsAll(required)
+        }.keys
+
     /** Maior sequência de todos os tempos. */
     fun best(days: Collection<Long>): Int {
         var best = 0

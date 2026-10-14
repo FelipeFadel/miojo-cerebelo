@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Tema só da janela (antes do Compose desenhar). O visual real fica em ui/theme/. -->
-    <style name="Theme.Cerebelo" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Tema só da janela (antes do Compose desenhar): fundo de papel, sem flash branco. -->
+    <style name="Theme.Cerebelo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/page</item>
+    </style>
 </resources>

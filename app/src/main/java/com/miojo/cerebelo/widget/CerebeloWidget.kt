@@ -21,7 +21,6 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
@@ -41,15 +40,14 @@ import androidx.glance.text.TextStyle
 import com.miojo.cerebelo.MainActivity
 import com.miojo.cerebelo.appContainer
 import com.miojo.cerebelo.data.HabitForDay
-import com.miojo.cerebelo.ui.theme.DarkColors
-import com.miojo.cerebelo.ui.theme.LightColors
 import com.miojo.cerebelo.ui.theme.WidgetTokens
+import com.miojo.cerebelo.ui.theme.inkMaterialColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 /** Cores do widget = mesmas cores do app (DesignTokens.kt). */
-private val WidgetColors = ColorProviders(light = LightColors, dark = DarkColors)
+private val WidgetColors = ColorProviders(light = inkMaterialColors(false), dark = inkMaterialColors(true))
 
 /** Widget: botão "Nova nota" + checklist de hoje. */
 class CerebeloWidget : GlanceAppWidget() {
@@ -77,7 +75,6 @@ private fun WidgetContent(items: List<HabitForDay>) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.surface)
-            .cornerRadius(WidgetTokens.cornerRadius)
             .padding(WidgetTokens.padding),
     ) {
         Button(

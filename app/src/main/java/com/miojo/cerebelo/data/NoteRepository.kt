@@ -8,6 +8,7 @@ import com.miojo.cerebelo.data.db.NoteTagCrossRef
 import com.miojo.cerebelo.data.db.NoteWithTags
 import com.miojo.cerebelo.data.db.TagEntity
 import com.miojo.cerebelo.data.db.TagType
+import com.miojo.cerebelo.data.db.TagWithCount
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -30,7 +31,11 @@ class NoteRepository(private val db: AppDatabase) {
     fun observeNotesForTag(tagId: Long): Flow<List<NoteWithTags>> =
         noteDao.observeNotesForTag(tagId)
 
+    fun observeRecent(limit: Int): Flow<List<NoteWithTags>> = noteDao.observeRecent(limit)
+
     fun observeTags(): Flow<List<TagEntity>> = tagDao.observeByUsage()
+
+    fun observeTagsWithCounts(): Flow<List<TagWithCount>> = tagDao.observeWithCounts()
 
     fun observeTag(id: Long): Flow<TagEntity?> = tagDao.observe(id)
 

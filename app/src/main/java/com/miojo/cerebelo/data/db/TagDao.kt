@@ -19,6 +19,19 @@ interface TagDao {
     )
     fun observeByUsage(): Flow<List<TagEntity>>
 
+    /** Tags com quantas notas têm e a data da última (mais recentes primeiro). */
+    @Query(
+        """
+        SELECT t.*, COUNT(n.id) AS noteCount, MAX(n.createdAt) AS lastNoteAt
+        FROM tags t
+        LEFT JOIN note_tags nt ON nt.tagId = t.id
+        LEFT JOIN notes n ON n.id = nt.noteId
+        GROUP BY t.id
+        ORDER BY lastNoteAt IS NULL, lastNoteAt DESC, t.name COLLATE NOCASE
+        """
+    )
+    fun observeWithCounts(): Flow<List<TagWithCount>>
+
     @Query("SELECT * FROM tags WHERE id = :id")
     fun observe(id: Long): Flow<TagEntity?>
 

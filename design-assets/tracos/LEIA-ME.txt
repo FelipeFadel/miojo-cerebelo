@@ -1,0 +1,16 @@
+TRAÇOS DE TINTA — Notas Iluminadas
+
+Gerados por código (script/gerar_tracos.py, Python + Pillow): cada linha é desenhada
+com pequenas ondulações e variação de espessura para parecer feita à pena.
+Rodar de novo com outra "seed" gera traços diferentes.
+
+png/        PNGs em 2x (copiar para res/drawable-xhdpi)
+            sufixo -dark  = tema claro (tinta escura)
+            sufixo -light = tema escuro (tinta pergaminho)
+            olive/olivel = tag de pessoa · seal/seall = tag de acontecimento
+ninepatch/  molduras prontas como 9-patch do Android (.9.png), esticam sem deformar
+            os cantos. Copiar para res/drawable-xhdpi e usar como background.
+            frame2 = moldura dupla (cantos 32px em 2x) · frame1 = moldura simples (16px)
+
+box = checkbox · xmark = X de marcado · rule = linha horizontal
+vrule = linha vertical · ledger = linha de caderno (repetir a cada 28dp) · plus = ícone +

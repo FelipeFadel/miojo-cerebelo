@@ -8,12 +8,22 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /** Um hábito como aparece no checklist de um dia. */
 data class HabitForDay(
     val habit: HabitEntity,
     val done: Boolean,
+    val streak: Int,
+)
+
+/** Progresso do checklist inteiro (quadro da sequência). */
+data class ChecklistProgress(
+    /** Dias em que todos os afazeres foram feitos (LocalDate.toEpochDay()). */
+    val fulfilledDays: Set<Long>,
+    /** Dias seguidos cumpridos até hoje (ou até ontem, se hoje ainda não acabou). */
     val streak: Int,
 )
 
@@ -48,6 +58,18 @@ class HabitRepository(
         }
 
     suspend fun loadDay(date: LocalDate): List<HabitForDay> = observeDay(date).first()
+
+    /** Sequência do checklist inteiro, vista a partir de [today]. */
+    fun observeProgress(today: LocalDate): Flow<ChecklistProgress> =
+        combine(dao.observeHabits(), dao.observeAllChecks()) { habits, checks ->
+            val zone = ZoneId.systemDefault()
+            val startDays = habits.associate { habit ->
+                habit.id to Instant.ofEpochMilli(habit.createdAt).atZone(zone).toLocalDate().toEpochDay()
+            }
+            val byDay = checks.groupBy({ it.day }, { it.habitId }).mapValues { it.value.toSet() }
+            val fulfilled = Streaks.fulfilledDays(startDays, byDay)
+            ChecklistProgress(fulfilled, Streaks.current(fulfilled, today))
+        }
 
     suspend fun toggle(habitId: Long, date: LocalDate) {
         val day = date.toEpochDay()

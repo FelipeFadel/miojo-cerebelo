@@ -81,6 +81,12 @@ data class HabitCheckEntity(
     val day: Long,
 )
 
+data class TagWithCount(
+    @Embedded val tag: TagEntity,
+    val noteCount: Int,
+    val lastNoteAt: Long?,
+)
+
 data class NoteWithTags(
     @Embedded val note: NoteEntity,
     @Relation(
